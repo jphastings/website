@@ -1,7 +1,7 @@
 require 'coderay'
 require 'haml'
 require 'kramdown'
-require 'haml-kramdown'
+require_relative 'lib/haml/filters/kramdown'
 require 'less'
 require 'sinatra'
 

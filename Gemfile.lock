@@ -7,8 +7,6 @@ GEM
     eventmachine (1.0.0)
     haml (4.0.0)
       tilt
-    haml-kramdown (0.0.1)
-      haml
     kramdown (0.14.2)
     less (2.2.2)
       commonjs (~> 0.2.6)
@@ -36,7 +34,6 @@ PLATFORMS
 DEPENDENCIES
   coderay
   haml
-  haml-kramdown
   kramdown
   less
   sinatra
