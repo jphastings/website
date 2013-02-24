@@ -1,17 +1,17 @@
-Date: 2013-02-25
+Date: 2013-02-28
 Tags: Caching, HTTP, REST
 
 # An incomplete and probably incorrect guide to HTTP caching
 
-This post is an attempt to provide an easier to follow version of the rules laid out in [RFC 2616](http://tools.ietf.org/html/rfc2616) §§ 13-14 around HTTP caching and the impact of various HTTP headers on them. Some detail has been simplified and/or omitted to cover only the subset of HTTP typically used by RESTful APIs as that's the reason I ended up writing this.
+This post is an attempt to provide an easier to follow version of the rules laid out in [RFC 2616](http://tools.ietf.org/html/rfc2616) §§ 13-14 around HTTP caching and the impact of various HTTP headers on them. Some detail has been simplified and/or omitted to cover only the subset of HTTP typically used by RESTful APIs, as it was research into the blinkbox Web API that led me to write this.
 
-It's fairly long and dry, so if you're not particularly interested in the theory then feel free to skip to the [examples](#examples) at the end which illustrate the main caching use-cases for APIs.
+Due to the nature of the content, this post is fairly long and dry. If you're not particularly interested in the details then feel free to skip to the [examples](#examples) at the end which illustrate the main caching use-cases for APIs.
 
-I should also note up front that the HTTP caching rules are extremely complex and are spread out through the RFC, which means that it's entirely possible there are errors in this post. If you find any, please let me know and I'll update it.
+I should also note up front that the HTTP caching rules are extremely complex and are spread out through the RFC, which means that it's possible - probable, even - that there are errors in this post. If you find any, please let me know and I'll update it.
 
 ## Revalidation
 
-The rules affecting revalidation are:
+Revalidation is where a client or intermediate cache needs to check with the origin server whether the entity has been updated. It might seem an odd place to start, but the cacheability rules depend on it so it's easier to define first. The rules affecting revalidation are:
 
 * The `Cache-Control: no-cache` directive doesn't prevent caching, but does require revalidation (RFC 2616 § 14.9.1).
 * The `Cache-Control: max-age=0` directive requires revalidation (RFC 2616 § 14.9.4).
@@ -72,14 +72,14 @@ def is_cacheable(request, response)
             return False
         if exists(request.headers.authorization) and not response.headers.cache_control.public
             return False
-    if must_revalidate(response) and 
-       not (exists(response.headers.etag) or exists(response.headers.last_modified))
-        return False
+    if must_revalidate(response)
+        if not (exists(response.headers.etag) or exists(response.headers.last_modified))
+            return False
     if request.method is "GET"
         return True
-    return response.headers.cache_control.public or
-           response.headers.cache_control.private or 
-           response.expires > now
+    if response.headers.cache_control.public or response.headers.cache_control.private
+        return True
+    return response.expires > now
 ~~~
 
 ## Freshness and Expiration
@@ -105,9 +105,9 @@ def get_age(response)
 
 The freshness lifetime algorithm is taken from RFC 2616 § 13.2.4. The rules are:
 
-* If the Cache-Control: max-age directive is present, then it is the freshness lifetime.
-* Otherwise, if the Expires header is present, then the the freshness lifetime is the difference between it and the Date header (note that origin servers are required to send a Date header).
-* Otherwise, if the Last-Modified header is present, the lifetime can be estimated as 10% of the time between the current time and the last modified time.
+* If the `Cache-Control: max-age` directive is present, then it is the freshness lifetime.
+* Otherwise, if the `Expires` header is present, then the the freshness lifetime is the difference between it and the `Date` header (note that origin servers are required to send a `Date` header).
+* Otherwise, if the `Last-Modified` header is present, the lifetime can be estimated as 10% of the time between the current time and the last modified time.
 * Otherwise, the cache should use a default lifetime.
 
 It is noted that caches estimating a freshness lifetime of more than 24 hours should attach Warning 113 to the response. To avoid this situation, it seems sensible to limit any estimated lifetime to no more than 24 hours.
@@ -142,7 +142,7 @@ def get_expires(response)
 
 ### Offline Mode
 
-Most mobile devices have an explicit offline mode where they do not attempt to connect to the internet (for example, this may be enabled on an aeroplane). When in offline mode it is reasonable to assume that if the user is attempting to use previously cached data that the rules for history lists (RFC 2616 § 13.13) apply and that the device may display data that is stale to represent the state at the time they were connected.
+Most mobile devices have an explicit offline mode where they do not attempt to connect to the internet (for example, this may be enabled on an aeroplane). When in offline mode it seems reasonable to assume that if the user is attempting to use previously cached data that the rules for history lists (RFC 2616 § 13.13) apply and that the device may display data that is stale to represent the state at the time they were connected.
 
 ## Request Preconditions
 
@@ -159,7 +159,7 @@ When sending request to modify or delete an existing entity (i.e. a request to a
 
 * The request should include an `If-Match` header, if:
     * The cached response has an `ETag` header, and
-    * The etag is not weak, i.e. the etag does not have the prefix `W/`` (RFC 2616 §§ 13.3.3, 13.3.4, 14.24).
+    * The etag is not weak, i.e. the etag does not have the prefix `W/` (RFC 2616 §§ 13.3.3, 13.3.4, 14.24).
 * The request should include an `If-Unmodified-Since` header containing the last modified date, if:
     * The cached response has a `Last-Modified` header, and
     * The cached response has `Date` value, and
@@ -259,8 +259,8 @@ A response that should never be cached:
 
 ~~~
 Cache-Control: no-store
-Date: now
-Expires: now
+Date: {now}
+Expires: {now}
 Pragma: no-cache
 ~~~
 
@@ -268,10 +268,10 @@ A response that may be cached, but must be revalidated before use and cannot be 
 
 ~~~
 Cache-Control: no-cache
-Date: now
-Expires: now
-ETag: etag
-Last-Modified: modified-date
+Date: {now}
+Expires: {now}
+ETag: {etag}
+Last-Modified: {modified-date}
 Pragma: no-cache
 ~~~
 
@@ -279,28 +279,28 @@ A response that may be cached, which should be revalidated before use, but which
 
 ~~~
 Cache-Control: [public|private], max-age=0
-Date: now
-Expires: now
-ETag: etag
-Last-Modified: modified-date
+Date: {now}
+Expires: {now}
+ETag: {etag}
+Last-Modified: {modified-date}
 ~~~
 
 A response that may be cached publicly, which does not need revalidation before use (until the specified expiration):
 
 ~~~
-Cache-Control: public, max-age=seconds
-Date: now
-Expires: now + seconds
-ETag: etag
-Last-Modified: modified-date
+Cache-Control: public, max-age={seconds}
+Date: {now}
+Expires: {now + seconds}
+ETag: {etag}
+Last-Modified: {modified-date}
 ~~~
 
 A response that may be cached privately, which does not need revalidation before use (until the specified expiration):
 
 ~~~
-Cache-Control: private, max-age=seconds
-Date: now
-Expires: now
-ETag: etag
-Last-Modified: modified-date
+Cache-Control: private, max-age={seconds}
+Date: {now}
+Expires: {now}
+ETag: {etag}
+Last-Modified: {modified-date}
 ~~~

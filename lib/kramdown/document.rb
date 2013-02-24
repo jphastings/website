@@ -4,6 +4,8 @@ module Kramdown
   class Document
 
     def metadata
+      # this isn't very good - should really recurse the tree nodes but i haven't worked
+      # out how to break cleanly from nested ruby iterators yet.
       @root.children.reduce({}) do |meta, node|
         # stop when we find the header
         if (node.type == :header)

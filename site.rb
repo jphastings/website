@@ -5,7 +5,7 @@ require 'less'
 require 'sinatra'
 
 require_relative 'lib/haml/filters/kramdown'
-require_relative 'lib/kramdown/document.rb'
+require_relative 'lib/kramdown/document'
 
 set :haml, format: :html5
 
@@ -18,12 +18,12 @@ get '/' do
 end
 
 get '/blog' do
-  filenames = Dir::glob('blog/*.markdown')
-  posts = filenames.collect do |filename|
+  posts = Dir::glob('blog/**/*.markdown').map do |filename|
     content = Kramdown::Document.new(File.read(filename), coderay_line_numbers: nil)
     metadata = content.metadata
     metadata.merge({ link: '/blog/' + File::basename(filename, '.*') })
   end
+  posts.reject! { |post| !post[:date] || post[:date] > Date::today } # only show posts with valid date
   posts.sort! { |a, b| b[:date] <=> a[:date] }
   haml :'blog/index', locals: { area: 'Blog', title: 'Blog', posts: posts }
 end
