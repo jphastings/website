@@ -29,7 +29,7 @@ get '/blog' do
 end
 
 get '/blog/:key' do
-  filename = "./blog/#{params[:key]}.markdown"
+  filename = Dir::glob("./blog/**/#{params[:key]}.markdown").first
   unless File.exists?(filename)
     status 404
     return haml :error, locals: { area: 'Blog', title: 'Post not found', message: 'Sorry, that post doesn\'t exist.' }
