@@ -1,0 +1,7 @@
+%h1 Random Technical Outbursts
+
+%ol.blogposts
+  -posts.each do |post|
+    %li
+      %a{ href: post[:link] } #{post[:title]}
+      (#{post[:date].strftime('%-d %b %Y')})

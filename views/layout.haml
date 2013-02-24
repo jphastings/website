@@ -1,0 +1,25 @@
+!!!
+%html
+  %head
+    %title #{title} - gregbeech.com
+    %link(rel="stylesheet" href="/css/styles.css")
+  %body
+    #wrapper1
+      #wrapper2
+        %header
+          %nav
+            %ul
+              %li{ class: (area == 'Home' ? 'current' : nil) } 
+                %a{ href: '/' } Home
+              %li{ class: (area == 'Blog' ? 'current' : nil) } 
+                %a{ href: '/blog' } Blog
+              %li{ class: (area == 'CV' ? 'current' : nil) } 
+                %a{ href: '/cv' } CV
+        %section#content
+          =yield
+        %footer
+          %p
+            Site and content Copyright (C) Greg Beech 2006-#{Time.now.year}. All rights 
+            reserved.
+          %p
+            Source code listings and downloads on this site may be used under the Creative Commons Zero (CC0) license unless otherwise stated.
