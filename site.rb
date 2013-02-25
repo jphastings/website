@@ -13,7 +13,9 @@ class GregSite < Sinatra::Base
 
   RFC822_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S GMT'
 
-  # ------------------------------------------------------------------------------
+  error 404 do
+    haml :error, locals: { area: 'Blog', title: 'Post not found', message: "Sorry, that post doesn't exist." }
+  end
 
   get '/css/:style.css' do
     less params[:style].to_sym
@@ -63,10 +65,7 @@ class GregSite < Sinatra::Base
 
   get '/blog/:key' do
     filename = Dir::glob("blog/**/#{params[:key]}.markdown").first
-    unless filename
-      status 404
-      return haml :error, locals: { area: 'Blog', title: 'Post not found', message: 'Sorry, that post doesn\'t exist.' }
-    end
+    halt 404 unless filename
     haml :'blog/post', locals: blog_post(filename).merge({ area: 'Blog' })
   end
 
@@ -92,4 +91,5 @@ class GregSite < Sinatra::Base
     end
     metadata.merge({ link: '/blog/' + File::basename(filename, '.*') })
   end
+  
 end
