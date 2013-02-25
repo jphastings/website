@@ -7,14 +7,15 @@ require 'sinatra/base'
 require_relative 'lib/haml/filters/kramdown'
 require_relative 'lib/kramdown/document'
 
-
 class GregSite < Sinatra::Base
   set :haml, format: :html5
 
   RFC822_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S GMT'
+  
+  # ------------------------------------------------------------------------------
 
   error 404 do
-    haml :error, locals: { area: 'Blog', title: 'Post not found', message: "Sorry, that post doesn't exist." }
+    haml :error, locals: { area: nil, title: 'Page not found', message: "Sorry, that page doesn't exist." }
   end
 
   get '/css/:style.css' do
