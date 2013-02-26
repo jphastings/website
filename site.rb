@@ -14,7 +14,7 @@ RFC822_DATE_FORMAT = '%a, %d %b %Y %H:%M:%S GMT'
 # ------------------------------------------------------------------------------
 
 error 404 do
-  haml :error, locals: { area: 'Blog', title: 'Post not found', message: "Sorry, that post doesn't exist." }
+  haml :error, locals: { area: nil, title: 'Post not found', message: "Sorry, that post doesn't exist." }
 end
 
 get '/css/:style.css' do
